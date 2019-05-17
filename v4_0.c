@@ -13,30 +13,8 @@
 #include <sys/param.h>
 #include <dirent.h>
 #include <sys/stat.h>
-/*
-1->2   2->(3,4)   4->5    3->6  6->7  7->8
-
-
-1->2 SIGUSR2   2->(3,4,5) SIGUSR1   4->6 SIGUSR1   
- 3->7 SIGUSR1  5->8 SIGUSR1 8->1 SIGUSR2
-*/
-/*             0
-               |
-               1
-               |
-               2
-               | \ 
-               3  4
-               |  |
-               6  5
-               |
-               7
-               |
-               8
-*/
 
 #define max 100
-#define pids "pids.txt"
 #define pathPids "/tmp/Lab4"
 
 pid_t pid1;
@@ -48,13 +26,7 @@ pid_t pid6;
 pid_t pid7;
 pid_t pid8;
 
-
-char * resolved_path;
-
-void call_realpath (char * argv0)
-{ 
-    resolved_path = basename(argv0);
-}
+char *prog_name;
 
 int get_current_time()
 {
@@ -64,21 +36,20 @@ int get_current_time()
 }
 
 
-//Print pid to file
+// print pid to file
 void write_pid(int num, pid_t pid)
 {
     FILE *fptr;
-    char * filepath = malloc(1024);
+    char *filepath = malloc(1024);
     sprintf(filepath,"%s/%d",pathPids, num);
-
     fptr = fopen(filepath, "w+");
-
     fprintf(fptr, "%d", pid);
     fclose(fptr);
 }
 
-//Checking "Does all files exists?" 
-int all_proccesses_exist(){
+// checking on existsing 
+int all_proccesses_exist()
+{
 	DIR* dir;
 	dir = opendir(pathPids);
 	if (dir == NULL)
@@ -89,15 +60,15 @@ int all_proccesses_exist(){
         struct dirent* entry;
 
 	int num = -2; //(.. && .)
-    while ((entry = readdir(dir)) != NULL)
+	while ((entry = readdir(dir)) != NULL)
 	{
 		num++;				
-    }
+	}
 	closedir(dir);
-    return num == 8;
+        return num == 8;
 }
 
-//Reading pids from files
+// reading pids from files
 void read_pid(int num, int *pid)
 {
     DIR* dir;
@@ -112,10 +83,10 @@ void read_pid(int num, int *pid)
 	int curr_pid = 0;
         while ((entry = readdir(dir)) != NULL)
 	{
-		if ((entry->d_name[0] == 48 + num)&& strcmp(entry->d_name, ".") && strcmp(entry->d_name, ".."))
-        {
+		if ((entry->d_name[0] == 48 + num) && strcmp(entry->d_name, ".") && strcmp(entry->d_name, ".."))
+                {
 			char * filepath = malloc(1024);
-    		sprintf(filepath,"%s/%s",pathPids, entry->d_name);
+    		        sprintf(filepath,"%s/%s", pathPids, entry->d_name);
 
 			FILE *fptr;
 			fptr = fopen(filepath, "r");
@@ -123,17 +94,15 @@ void read_pid(int num, int *pid)
 			fclose(fptr);
 			break;
 		}			
-    }
+        }
 	closedir(dir);
 	*pid = curr_pid;
-
 }
 
-//Fill pid variables
 int get_pid(int num)
 {
     int* pid = 0;
-    switch(num){
+    switch(num) {
         case 1:
             pid = &pid1;
             break;
@@ -159,7 +128,8 @@ int get_pid(int num)
             pid = &pid8;
             break;
     }
-    while((*pid) == 0){
+    while((*pid) == 0)
+    {
         read_pid(num, pid);
     }
     return (*pid);
@@ -170,6 +140,8 @@ void print_info(int num, int get, int usr)
     char got_sent_info[50], curr_usr[50];
     if (get == 0)
         strcpy(got_sent_info,"got ");
+    else
+	strcpy(got_sent_info,"sent ");
 
     if (usr == 0)
         strcpy(curr_usr, "USR1");        
@@ -182,7 +154,7 @@ void print_info(int num, int get, int usr)
 
 void print_term_info(int usr1, int usr2)
 {
-    printf("%d %d ended work after %d SIGUSR1 and %d SIGUSR2\n", getpid(), getppid(),usr1, usr2);
+    printf("%d %d ended work after %d SIGUSR1 and %d SIGUSR2\n", getpid(), getppid(), usr1, usr2);
 }
 
 int curr_signals = 0;
@@ -192,14 +164,13 @@ void handle_pr1(int signo)
     if(signo == SIGUSR2)
     {
         curr_signals++;
-        print_info(1,0,1);
         if (curr_signals == max)
         {
             kill(get_pid(2), SIGTERM);
             int status;
             pid_t wpid;
             while ((wpid = wait(&status)) > 0);
-            print_term_info(0, curr_signals);
+            print_term_info(0, sent_signals1);
             exit(0);
         }
         else
@@ -215,7 +186,6 @@ void handle_pr2(int signo)
 {
     if(signo == SIGUSR2)
     {
-        print_info(2,0,1);
         kill(-get_pid(3),SIGUSR1);  
         sent_signals2++;
     }
@@ -231,15 +201,16 @@ void handle_pr2(int signo)
 }
 
 int sent_signals3 = 0;
-
 void handle_pr3(int signo)
 {
-    if(signo == SIGUSR1){
-        print_info(3,0,0);
+    if(signo == SIGUSR1)
+    {
         kill(get_pid(7), SIGUSR1);
         sent_signals3++;
     }
-    if (signo == SIGTERM){
+
+    if (signo == SIGTERM)
+    {
         kill(get_pid(4), SIGTERM);
         kill(get_pid(6), SIGTERM);
         int status;
@@ -253,12 +224,13 @@ void handle_pr3(int signo)
 int sent_signals4 = 0;
 void handle_pr4(int signo)
 { 
-    if(signo == SIGUSR1){
-        print_info(4,0,0);
+    if(signo == SIGUSR1)
+    {
         kill(get_pid(6), SIGUSR1);
         sent_signals4++;
     }
-    if (signo == SIGTERM){
+    if (signo == SIGTERM)
+    {
         kill(get_pid(5), SIGTERM);
         int status;
         pid_t wpid;
@@ -266,19 +238,18 @@ void handle_pr4(int signo)
         print_term_info(sent_signals4, 0);
         exit(0);
     }
-   
 }
 
 int sent_signals5 = 0;
-
 void handle_pr5(int signo)
 {
-    if(signo == SIGUSR1){
-        print_info(5,0,0);
+    if(signo == SIGUSR1)
+    {
         kill(get_pid(8), SIGUSR1);
         sent_signals5++;
     }
-    if (signo == SIGTERM){
+    if (signo == SIGTERM)
+    {
         print_term_info(sent_signals5, 0);
         exit(0);
     }
@@ -289,7 +260,6 @@ void handle_pr6(int signo)
 {
     if(signo == SIGUSR1)
     {
-        print_info(6,0,0);
         sent_signals6++;
     }
     if (signo == SIGTERM)
@@ -301,7 +271,6 @@ void handle_pr6(int signo)
         print_term_info(sent_signals6, 0);
         exit(0);
     }
-   
 }
 
 int sent_signals7 = 0;
@@ -309,7 +278,6 @@ void handle_pr7(int signo)
 {
     if(signo == SIGUSR1)
     {
-        print_info(7,0,0);
         sent_signals7++;
     }
     if (signo == SIGTERM)
@@ -321,7 +289,6 @@ void handle_pr7(int signo)
         print_term_info(sent_signals7, 0);
         exit(0);
     }
-   
 }
 
 int sent_signals8 = 0;
@@ -329,7 +296,6 @@ void handle_pr8(int signo)
 {
     if(signo == SIGUSR1)
     {
-        print_info(8,0,0);
         kill(get_pid(1), SIGUSR2);
         sent_signals8++;
     }
@@ -340,7 +306,8 @@ void handle_pr8(int signo)
     }
 }
 
-void create_process_tree(){
+void create_process_tree()
+{
     struct sigaction act1, act2, act3, act4, act5, act6, act7, act8;
 
     memset(&act1, 0, sizeof(act1));
@@ -368,8 +335,8 @@ void create_process_tree(){
     act8.sa_handler = handle_pr8;
 
     //1
-    if (fork() == 0){
-
+    if (fork() == 0)
+    {
         sigaction(SIGUSR2,  &act1, 0);
         sigaction(SIGTERM, &act1, 0);
 
@@ -378,7 +345,8 @@ void create_process_tree(){
         printf("1 %d %d %d\n", getpid(), getppid(), getpgrp());
         
         //2
-        if(fork() == 0){
+        if(fork() == 0)
+        {
             sigaction(SIGUSR2,  &act2, 0);
             sigaction(SIGTERM, &act2, 0);
 
@@ -388,19 +356,19 @@ void create_process_tree(){
             printf("2 %d %d %d\n", getpid(), getppid(), getpgrp());        
 
             //3
-            if (fork() == 0){
+            if (fork() == 0)
+	    {
                 sigaction(SIGUSR1,  &act3, 0);
                 sigaction(SIGTERM, &act3, 0);
 
                 pid3 = getpid();
-                
                 setpgid(0, 0);
                 write_pid(3, pid3);
-
                 printf("3 %d %d %d\n", getpid(), getppid(), getpgrp());
 
                 //6
-                if (fork() == 0){
+                if (fork() == 0)
+		{
                     sigaction(SIGUSR1,  &act6, 0);
                     sigaction(SIGTERM, &act6, 0);
                     pid6 = getpid();
@@ -410,42 +378,39 @@ void create_process_tree(){
                     printf("6 %d %d %d\n", getpid(), getppid(), getpgrp());
 
                     //7
-                    if (fork() == 0){
+                    if (fork() == 0)
+		    {
                         sigaction(SIGUSR1,  &act7, 0);
                         sigaction(SIGTERM, &act7, 0);
 
                         pid7 = getpid();
-
-
                         setpgid(0,0);
                         write_pid(7, pid7);
                         printf("7 %d %d %d\n", getpid(), getppid(), getpgrp());
 
                         //8
-                        if (fork() == 0){
+                        if (fork() == 0)
+			{
                             sigaction(SIGUSR1,  &act8, 0);
                             sigaction(SIGTERM, &act8, 0);
                                                 
                             pid8 = getpid();
                             setpgid(0,0);
                             write_pid(8, pid8);
-
                             printf("8 %d %d %d\n", getpid(), getppid(), getpgrp());
                             fflush(0);
-
                             while(1);
                         } 
                         while(1);
                     }
                     while(1);
                 }
-
                 while(1);
             }
 
             //4
-            if (fork() == 0){
-
+            if (fork() == 0)
+	    {
                 sigaction(SIGUSR1,  &act4, 0);
                 sigaction(SIGTERM, &act4, 0);
                         
@@ -453,11 +418,11 @@ void create_process_tree(){
                 printf("%d", get_pid(3));
                 setpgid(0,get_pid(3));
                 write_pid(4, pid4);
-
                 printf("4 %d %d %d\n", getpid(), getppid(), getpgrp());
 
                 //5
-                if (fork() == 0){
+                if (fork() == 0)
+		{
                     sigaction(SIGUSR1,  &act5, 0);
                     sigaction(SIGTERM, &act5, 0);
 
@@ -470,35 +435,30 @@ void create_process_tree(){
                 }                
                 while(1);
             }        
-
-
             while(1);
-        }  
-
+        }
         while(!all_proccesses_exist());
-    }        
-    
+    }    
 }
 
-int main(int args, char **argv)
+int main(int args, char *argv[])
 {   
-    call_realpath(argv[0]);
-
+    prog_name = basename(argv[0]);
     int flag = 1;
-	while(flag)
+
+    while(flag)
     {
-		if (mkdir(pathPids, 0777))
-			system("rm -r /tmp/Lab4");				
-		else	
-			flag = 0;	
-	}
+    	if (mkdir(pathPids, 0777))
+		system("rm -r /tmp/Lab4");				
+    	else	
+		flag = 0;	
+    }
     
     create_process_tree();
 
     if (getpid() == get_pid(1)) 
     {
         kill(get_pid(2), SIGUSR2);
-        
         while(1);
     }
     else
