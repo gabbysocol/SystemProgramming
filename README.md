@@ -19,9 +19,8 @@ Write a program that finds all files of a given size in a given directory and al
 Write a program for counting the frequency of occurring characters in the files specified directory of its subdirectories. The directory name is the first argument. The main process opens the directories and starts for each directory file and a separate process of counting the number of characters. Each process displays its own pid, the full path to the file, the total number of bytes scanned and the frequencies of the characters encountered (all in one line). The number of simultaneously running processes should not exceed N (second argument).
 
 * __WorkWithSignals__  
-_The tree of process_
-
-_The signal exchange sequence_
+	*_The tree of process_
+	*_The signal exchange sequence_
 
 * __Work with threads__  
 
