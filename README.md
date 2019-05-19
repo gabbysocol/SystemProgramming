@@ -23,7 +23,10 @@ Write a program for counting the frequency of occurring characters in the files 
 	*_The signal exchange sequence_
 
 * __Work with threads__  
+The user specifies the name of the directory. The main process opens the directories and starts for each directory file and a separate stream of counting the frequency of occurring characters.
+Output: id of thread, full path, size, symbol, frequency.
+The number of simultaneously running threads N
 
-P.S. : formatted output, error output through the standard error stream (stderro)
+:exclamation: P.S. : formatted output, error output through the standard error stream (stderro)
 ***  
 
